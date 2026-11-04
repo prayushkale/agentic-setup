@@ -2,9 +2,11 @@
 # e2e-core.sh: install the core pack for real into an empty sandbox HOME, run doctor, measure
 # startup tokens, uninstall everything, and check the sandbox HOME is back to its pre-install state.
 #
-#   tools/e2e-core.sh [--dry-run] [--keep]
-#     --dry-run  stop after the install dry-run (nothing is installed)
-#     --keep     leave sandbox/e2e in place at the end (default: destroy it)
+#   tools/e2e-core.sh [--dry-run] [--keep] [--npx <spec>]
+#     --dry-run     stop after the install dry-run (nothing is installed)
+#     --keep        leave sandbox/e2e in place at the end (default: destroy it)
+#     --npx <spec>  test a package instead of this checkout: run `npx -y --package <spec> agentic-setup` (a tarball path or
+#                   agentic-setup@<version>) with its bundled assets; no build, no AGENTIC_SETUP_ROOT
 #
 # Logs go to sandbox/e2e-logs/ (kept after the sandbox is destroyed).
 # The sandbox PATH holds only the sandbox's npm prefix and ~/.local/bin, a shim dir with
@@ -17,9 +19,15 @@ SB="$REPO/tools/sandbox.sh"
 NAME=e2e
 PROFILE="$REPO/tools/e2e-core-profile.yaml"
 LOGS="$REPO/sandbox/e2e-logs"
-DRY=0; KEEP=0
-for a in "$@"; do
-  case "$a" in --dry-run) DRY=1 ;; --keep) KEEP=1 ;; *) echo "usage: e2e-core.sh [--dry-run] [--keep]" >&2; exit 2 ;; esac
+DRY=0; KEEP=0; NPX=""
+while (($#)); do
+  case "$1" in
+    --dry-run) DRY=1 ;;
+    --keep) KEEP=1 ;;
+    --npx) NPX="${2:?--npx needs a spec}"; shift ;;
+    *) echo "usage: e2e-core.sh [--dry-run] [--keep] [--npx <spec>]" >&2; exit 2 ;;
+  esac
+  shift
 done
 
 GUARD="$REPO/sandbox/guard-before.tsv"
@@ -40,12 +48,16 @@ for b in claude node npm npx; do
 done
 
 sbpath="$prefix/bin:$home/.local/bin:$shim:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-export SANDBOX_EXTRA_ENV="NPM_CONFIG_PREFIX=$prefix PATH=$sbpath AGENTIC_SETUP_ROOT=$REPO"
-case "$SANDBOX_EXTRA_ENV" in *" "*" "*" "*) echo "e2e: paths must not contain spaces" >&2; exit 1 ;; esac
-cli() { "$SB" run "$NAME" -- node "$REPO/installer/dist/cli.js" "$@"; }
-
-step "build"
-(cd "$REPO/installer" && npm run build >/dev/null)
+case "$prefix$sbpath$REPO$NPX" in *" "*) echo "e2e: paths must not contain spaces" >&2; exit 1 ;; esac
+if [[ -n "$NPX" ]]; then
+  export SANDBOX_EXTRA_ENV="NPM_CONFIG_PREFIX=$prefix PATH=$sbpath"
+  cli() { "$SB" run "$NAME" -- npx -y --package "$NPX" agentic-setup "$@"; }
+else
+  export SANDBOX_EXTRA_ENV="NPM_CONFIG_PREFIX=$prefix PATH=$sbpath AGENTIC_SETUP_ROOT=$REPO"
+  cli() { "$SB" run "$NAME" -- node "$REPO/installer/dist/cli.js" "$@"; }
+  step "build"
+  (cd "$REPO/installer" && npm run build >/dev/null)
+fi
 
 step "npm prefix inside the sandbox"
 got="$("$SB" run "$NAME" -- npm config get prefix)"
