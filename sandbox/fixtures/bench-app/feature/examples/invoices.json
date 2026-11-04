@@ -1,0 +1,13 @@
+{
+  "taxRate": 0.2,
+  "customers": [
+    { "id": "c1", "name": "Ada Lovelace", "email": "ada@example.test" },
+    { "id": "c2", "name": "Babbage, Charles", "email": "cb@example.test" }
+  ],
+  "invoices": [
+    { "id": "INV-1", "customerId": "c1", "issued": "2026-10-01", "dueDays": 30,
+      "items": [{ "description": "Engine design", "qty": 2, "unitCents": 12550 }] },
+    { "id": "INV-2", "customerId": "c2", "issued": "2026-10-15", "dueDays": 14, "discount": { "percent": 10 },
+      "items": [{ "description": "Gears", "qty": 3, "unitCents": 999 }, { "description": "Oil", "qty": 1, "unitCents": 250 }] }
+  ]
+}

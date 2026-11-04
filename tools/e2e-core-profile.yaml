@@ -1,0 +1,25 @@
+# e2e profile for tools/e2e-core.sh: every item in the core pack.
+# rtk stays in: its install is `brew install rtk` (a system-wide write), but its
+# `commands_unless` probe (`command -v rtk`) finds the brew binary already on the sandbox PATH,
+# so brew is dropped from the plan and never runs, while the claude-code hook still installs
+# (rtk's detect needs both the binary and the hook, R26). e2e-core.sh refuses to install if the
+# dry-run plans any brew, sudo or unprefixed global install.
+agents: [claude-code, generic]
+items:
+  - superpowers
+  - superpowers-skills
+  - rtk
+  - ccusage-statusline
+  - context7
+  - serena
+  - impeccable
+  - frontend-design
+  - ui-ux-pro-max
+  - grill-me
+  - handoff
+  - caveman
+  - find-skills
+  - differential-review
+  - supply-chain-risk-auditor
+  - agent-browser
+  - agents-md

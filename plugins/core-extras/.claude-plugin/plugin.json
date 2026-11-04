@@ -1,0 +1,11 @@
+{
+  "name": "core-extras",
+  "version": "0.1.0",
+  "description": "Small additions to core skills. Grilling sessions turn each settled decision into a check you can test.",
+  "author": {
+    "name": "prayushkale"
+  },
+  "homepage": "https://github.com/prayushkale/agentic-setup",
+  "repository": "https://github.com/prayushkale/agentic-setup",
+  "license": "MIT"
+}

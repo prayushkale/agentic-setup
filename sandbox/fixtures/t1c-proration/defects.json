@@ -1,0 +1,5 @@
+{"defects": [
+ {"id": "Y1", "kind": "off-by-one-day", "truth": "unusedDays subtracts 1, so the upgrade day is not counted as unused", "keywords": ["- 1", "off-by-one", "upgrade day", "one day", "unusedDays"]},
+ {"id": "Y2", "kind": "half-feature", "truth": "confirmation lines omit the credit line", "keywords": ["credit line", "credit as its own line", "confirmation", "no credit", "omit"]},
+ {"id": "Y3", "kind": "out-of-scope", "truth": "WELCOME10 coupon added although coupons are out of scope", "keywords": ["coupon", "WELCOME10"]}],
+ "unknown": {"id": "U1", "truth": "retry policy is undecided; implementation adds 3 retries", "pass_if": "flagged as CANNOT JUDGE / undecided / not approved, or as a FAIL for building undecided scope"}}

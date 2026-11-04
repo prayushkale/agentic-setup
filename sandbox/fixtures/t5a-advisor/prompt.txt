@@ -1,0 +1,1 @@
+`npm test` is failing on the monthly report test. Fix the failing test; don't modify the test. Then add a `report <YYYY-MM> <file>` command to `src/cli.ts` that prints the report as `month count total exempt` (total formatted with formatCents), with a test for it, and make sure the whole suite is green. Work directly in this repo; no worktree, no branch.

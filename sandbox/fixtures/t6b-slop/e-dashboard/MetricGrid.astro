@@ -1,0 +1,38 @@
+---
+import StatCard from "../StatCard.astro";
+
+/**
+ * Responsive StatCard grid — the KPI row pattern already used by
+ * src/pages/vix-nifty-correlation/index.astro.
+ */
+interface Props {
+    items: {
+        label: string;
+        value: string;
+        sub?: string;
+        accent?: "negative" | "positive" | "neutral";
+    }[];
+    columns?: 2 | 3 | 4;
+}
+
+const { items, columns = 4 } = Astro.props;
+
+const cols: Record<number, string> = {
+    2: "sm:grid-cols-2",
+    3: "sm:grid-cols-2 lg:grid-cols-3",
+    4: "sm:grid-cols-2 lg:grid-cols-4",
+};
+---
+
+<div class={`grid grid-cols-1 gap-stack-md ${cols[columns]}`}>
+    {
+        items.map((it) => (
+            <StatCard
+                label={it.label}
+                value={it.value}
+                sub={it.sub}
+                accent={it.accent ?? "neutral"}
+            />
+        ))
+    }
+</div>

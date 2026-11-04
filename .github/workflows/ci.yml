@@ -1,0 +1,26 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.12'
+      - name: Root dependencies
+        run: npm ci --include=dev
+      - name: Installer checks
+        working-directory: installer
+        run: |
+          npm ci --include=dev
+          npx tsc --noEmit
+          npx vitest run
+      - name: Generated files are current
+        run: |
+          node tools/gen-marketplace.mjs --check
+          node tools/gen-item-docs.mjs --check
+      - name: Shipped files are all own content
+        run: node tools/check-redistribution.mjs

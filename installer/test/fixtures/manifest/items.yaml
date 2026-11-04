@@ -1,0 +1,15 @@
+- id: demo
+  name: Demo
+  pack: core
+  summary: A demo item
+  benefit: [quality]
+  details: docs/items/demo.md
+  kinds: [skill]
+  agents: [claude-code]
+  source: { type: local, ref: skills/demo }
+  redistribution: own
+  risk: low
+  token_cost: 100
+  install:
+    local_skills: [skills/demo]
+  verify: test -f ~/.claude/skills/demo/SKILL.md

@@ -1,0 +1,1 @@
+Rename latestWeeklyReport to getLatestWeeklyReport everywhere in this repo (definition, imports and every use). Change nothing else. Don't run the build or tests.

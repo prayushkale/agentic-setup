@@ -1,0 +1,1 @@
+Which function builds the crude-oil vs NIFTY correlation analysis, and which page renders it? Give path:line for the function definition and for the page's call. Do not edit files. End your reply with one ```json block: {"locations": ["path:line", ...]}.

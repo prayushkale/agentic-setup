@@ -1,0 +1,47 @@
+{
+  "bugs": [
+    {"id": "B1", "kind": "off-by-one", "file": "src/money.ts",
+     "patches": [["(i < leftover ? 1 : 0)", "(i <= leftover ? 1 : 0)"]],
+     "locator": "(i <= leftover ? 1 : 0)",
+     "keywords": ["leftover", "off-by-one", "<=", "sum", "extra cent"],
+     "failure": "split(1000, 3) returns [334, 334, 333], 1001 cents"},
+    {"id": "B2", "kind": "null-guard", "file": "src/invoice.ts",
+     "patches": [["const pct = inv.discount ? inv.discount.percent : 0;", "const pct = inv.discount.percent ?? 0;"]],
+     "locator": "const pct = inv.discount.percent ?? 0;",
+     "keywords": ["discount", "undefined", "null", "TypeError", "optional"],
+     "failure": "invoiceTotal on an invoice with no discount throws TypeError"},
+    {"id": "B3", "kind": "cascade-orphan", "file": "src/store.ts",
+     "patches": [["if (inv.customerId === id) this.invoices.delete(invoiceId);", "if (inv.id === id) this.invoices.delete(invoiceId);"]],
+     "locator": "if (inv.id === id) this.invoices.delete(invoiceId);",
+     "keywords": ["orphan", "cascade", "customerId", "inv.id", "deleteCustomer"],
+     "failure": "deleteCustomer('c1') leaves c1's invoices in the store"},
+    {"id": "B4", "kind": "raw-html-sink", "file": "src/render.ts",
+     "patches": [["<p class=\"to\">${escapeHtml(customer.name)}</p>", "<p class=\"to\">${customer.name}</p>"]],
+     "locator": "<p class=\"to\">${customer.name}</p>",
+     "keywords": ["escape", "XSS", "customer.name", "HTML injection", "inject"],
+     "failure": "a customer named <img src=x onerror=alert(1)> renders as live HTML"},
+    {"id": "B5", "kind": "stale-closure", "file": "src/reminders.ts",
+     "patches": [["  let threshold: Cents = 0;\n  return {", "  let threshold: Cents = 0;\n  const limit = threshold;\n  return {"],
+                 ["invoiceTotal(inv, taxRate) <= threshold) continue;", "invoiceTotal(inv, taxRate) <= limit) continue;"]],
+     "locator": "const limit = threshold;",
+     "keywords": ["stale", "closure", "limit", "setThreshold", "captured"],
+     "failure": "setThreshold(1_000_000) has no effect; small invoices still get reminders"},
+    {"id": "B6", "kind": "timezone", "file": "src/dates.ts",
+     "patches": [["const d = new Date(`${issued}T00:00:00Z`);\n  d.setUTCDate(d.getUTCDate() + dueDays);", "const d = new Date(`${issued}T00:00:00`);\n  d.setDate(d.getDate() + dueDays);"]],
+     "locator": "const d = new Date(`${issued}T00:00:00`);",
+     "keywords": ["timezone", "UTC", "local time", "toISOString", "off by a day"],
+     "failure": "with TZ=Asia/Kolkata, dueDate('2026-10-01', 30) returns 2026-10-30"}
+  ],
+  "decoys": [
+    {"id": "D1", "file": "src/store.ts", "locator": "for (const [invoiceId, inv] of this.invoices) {", "why_safe": "deleting the current key while iterating a Map is defined behaviour in JS"},
+    {"id": "D2", "file": "src/dates.ts", "locator": "return dueDate(inv.issued, inv.dueDays) < today;", "why_safe": "equal-length YYYY-MM-DD strings compare correctly"},
+    {"id": "D3", "file": "src/invoice.ts", "locator": "const first = inv.items[0].description;", "why_safe": "validateInvoice (called by Store.addInvoice) rejects empty items"},
+    {"id": "D4", "file": "src/render.ts", "locator": "<td>${it.qty}</td>", "why_safe": "qty and formatted cents are validated integers, not user text"},
+    {"id": "D5", "file": "src/store.ts", "locator": "inv.customerId == customerId", "why_safe": "both sides are strings; loose equality is harmless"},
+    {"id": "D6", "file": "src/reminders.ts", "locator": "if (customer == null) continue;", "why_safe": "== null deliberately covers undefined from Map.get"}
+  ],
+  "traps": [
+    {"id": "T1", "file": "src/ui.ts", "locator": "el.innerHTML = '<strong class=\"badge\">Overdue</strong>';", "why_safe": "constant markup, no user input"},
+    {"id": "T2", "file": "src/store.ts", "locator": "export const SCHEMA_SQL =", "why_safe": "constant DDL string, no interpolation"}
+  ]
+}

@@ -1,0 +1,1 @@
+List every definition of a function or const named fmtPct in this repo, in any file type, as path:line. Do not edit files. End your reply with one ```json block: {"locations": ["path:line", ...]}.

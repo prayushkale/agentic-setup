@@ -1,0 +1,7 @@
+node_modules/
+dist/
+assets/
+# copied from the repo root by prepack
+/README.md
+/LICENSE
+/CHANGELOG.md

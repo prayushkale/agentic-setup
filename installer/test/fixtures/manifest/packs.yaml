@@ -1,0 +1,8 @@
+- id: core
+  title: Core
+  default: true
+  summary: Essentials
+- id: video
+  title: Video
+  default: false
+  summary: Video tools

@@ -1,0 +1,31 @@
+{
+  "name": "agentic-setup",
+  "owner": {
+    "name": "prayushkale"
+  },
+  "metadata": {
+    "description": "Own skills, hooks and rules from the agentic-setup packs. Upstream items install through npx agentic-setup."
+  },
+  "plugins": [
+    {
+      "name": "verification",
+      "source": "./plugins/verification",
+      "description": "Makes \"done\" mean the agreed checks pass. Adds an acceptance-checks rule, a Stop-hook gate, a blind plan review and a skeptic pass over review findings."
+    },
+    {
+      "name": "design",
+      "source": "./plugins/design",
+      "description": "A rule for grading generic, template-looking UI by severity instead of by counting tricks."
+    },
+    {
+      "name": "core-extras",
+      "source": "./plugins/core-extras",
+      "description": "Small additions to core skills. Grilling sessions turn each settled decision into a check you can test."
+    },
+    {
+      "name": "security",
+      "source": "./plugins/security",
+      "description": "Scans a third-party skill before you install it. Needs NVIDIA SkillSpector."
+    }
+  ]
+}

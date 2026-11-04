@@ -1,0 +1,8 @@
+{"defects": [
+ {"id": "P1", "kind": "bad-path", "code_verified": true, "where": "Task 2 modifies src/payments/ledger.ts", "truth": "ledger.ts does not exist and is not marked create", "keywords": ["ledger.ts"]},
+ {"id": "P2", "kind": "wrong-signature", "code_verified": true, "where": "Task 1 invoiceTotal(inv)", "truth": "invoiceTotal takes (inv, taxRate)", "keywords": ["invoiceTotal", "taxRate", "signature", "argument"]},
+ {"id": "P3", "kind": "needless-cache", "code_verified": true, "where": "Task 3 LRU cache", "truth": "no requirement asks for it; totals are cheap", "keywords": ["cache", "LRU", "YAGNI", "not required"]},
+ {"id": "P4", "kind": "undefined-acronym", "code_verified": false, "where": "Task 4 IEM ordering", "truth": "IEM is defined nowhere", "keywords": ["IEM"]},
+ {"id": "P5", "kind": "unhandled-duplicate", "code_verified": false, "where": "Task 2 records processed ids", "truth": "no task checks the set before applying or returns \"duplicate\"; R4 uncovered", "keywords": ["duplicate", "idempot", "R4", "processed"]},
+ {"id": "P6", "kind": "non-goal-built", "code_verified": false, "where": "Task 5 refunds", "truth": "spec puts refunds out of scope", "keywords": ["refund", "out of scope", "non-goal"]}
+]}

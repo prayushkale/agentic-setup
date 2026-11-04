@@ -1,0 +1,33 @@
+packs:
+  - id: core
+    title: Core
+    default: true
+    summary: The everyday setup. A planning-first workflow, cheaper shell output, current library docs, design and security skills, and a short set of working rules.
+  - id: verification
+    title: Verification
+    default: false
+    summary: Makes "done" mean the agreed checks pass. Adds an acceptance-checks rule, a Stop-hook gate, a blind plan review and a skeptic pass over review findings.
+  - id: design
+    title: Design
+    default: false
+    summary: A rule for grading generic, template-looking UI by severity instead of by counting tricks.
+  - id: core-extras
+    title: Core extras
+    default: false
+    summary: Small additions to core skills. Grilling sessions turn each settled decision into a check you can test.
+  - id: security
+    title: Security
+    default: false
+    summary: Scans a third-party skill before you install it. Needs NVIDIA SkillSpector.
+  - id: cloudflare
+    title: Cloudflare
+    default: false
+    summary: Cloudflare's own skills for Workers, Durable Objects, the Agents SDK and the cf CLI, plus a rule for choosing between cf and Wrangler.
+  - id: threejs
+    title: Three.js games
+    default: false
+    summary: Three.js API and game-building skills, a live scene inspector, and fal and Blender MCPs for generating assets. fal needs an account and Blender must be running.
+  - id: video
+    title: Video
+    default: false
+    summary: Skills for making videos in code with HyperFrames (HTML to video) and Remotion (React to video).

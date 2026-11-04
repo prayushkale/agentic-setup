@@ -1,0 +1,11 @@
+{
+  "name": "security",
+  "version": "0.1.0",
+  "description": "Scans a third-party skill before you install it. Needs NVIDIA SkillSpector.",
+  "author": {
+    "name": "prayushkale"
+  },
+  "homepage": "https://github.com/prayushkale/agentic-setup",
+  "repository": "https://github.com/prayushkale/agentic-setup",
+  "license": "MIT"
+}

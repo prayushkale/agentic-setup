@@ -1,0 +1,104 @@
+---
+/**
+ * Option-chain OI at a glance. Calls above spot, puts below, both scaled to the
+ * largest OI in the ladder so the walls read instantly. Pure CSS bars — no
+ * charting library — so it stays legible on mobile and prints cleanly.
+ */
+interface Props {
+    strikes: {
+        strike: number;
+        callOiLakh: number | null;
+        putOiLakh: number | null;
+    }[];
+    spot: number | null;
+    callWall?: number | null;
+    putWall?: number | null;
+    maxPain?: number | null;
+}
+
+const { strikes, spot, callWall, putWall, maxPain } = Astro.props;
+
+const maxOi = Math.max(
+    1,
+    ...strikes.flatMap((s) => [s.callOiLakh ?? 0, s.putOiLakh ?? 0]),
+);
+const bar = (v: number | null) => (v == null ? 0 : Math.round((v / maxOi) * 100));
+const fmtStrike = (n: number) => n.toLocaleString("en-IN");
+
+// Spot splits the ladder into calls above and puts below.
+const above = spot != null ? strikes.filter((s) => s.strike >= spot) : strikes;
+const below = spot != null ? strikes.filter((s) => s.strike < spot).reverse() : [];
+---
+
+<div class="flex flex-col gap-1">
+    <div class="grid grid-cols-[minmax(4.5rem,auto)_1fr_minmax(4.5rem,auto)] items-center gap-2">
+        <span class="font-label-caps text-label-caps text-error">Call OI</span>
+        <span class="font-label-caps text-label-caps text-secondary">Put OI</span>
+        <span class="text-right font-label-caps text-label-caps text-on-surface-variant">Strike</span>
+    </div>
+
+    {
+        above.map((s) => (
+            <div class="grid grid-cols-[minmax(4.5rem,auto)_1fr_minmax(4.5rem,auto)] items-center gap-2">
+                <div class="flex justify-end">
+                    <div
+                        class="h-3 bg-error/70"
+                        style={`width:${bar(s.callOiLakh)}%`}
+                    />
+                </div>
+                <div class="flex">
+                    <div
+                        class="h-3 bg-secondary/50"
+                        style={`width:${bar(s.putOiLakh)}%`}
+                    />
+                </div>
+                <span class="text-right font-mono text-body-sm text-on-background">
+                    {fmtStrike(s.strike)}
+                    {s.strike === callWall && <span class="text-error"> ▲</span>}
+                    {s.strike === maxPain && <span class="text-on-surface-variant"> ◆</span>}
+                </span>
+            </div>
+        ))
+    }
+
+    {
+        spot != null && (
+            <div class="my-1 flex items-center gap-2">
+                <span class="h-px flex-1 bg-outline-variant" />
+                <span class="font-mono text-label-caps text-primary">
+                    spot {fmtStrike(spot)}
+                </span>
+                <span class="h-px flex-1 bg-outline-variant" />
+            </div>
+        )
+    }
+
+    {
+        below.map((s) => (
+            <div class="grid grid-cols-[minmax(4.5rem,auto)_1fr_minmax(4.5rem,auto)] items-center gap-2">
+                <div class="flex justify-end">
+                    <div
+                        class="h-3 bg-error/70"
+                        style={`width:${bar(s.callOiLakh)}%`}
+                    />
+                </div>
+                <div class="flex">
+                    <div
+                        class="h-3 bg-secondary/50"
+                        style={`width:${bar(s.putOiLakh)}%`}
+                    />
+                </div>
+                <span class="text-right font-mono text-body-sm text-on-background">
+                    {fmtStrike(s.strike)}
+                    {s.strike === putWall && <span class="text-secondary"> ▼</span>}
+                    {s.strike === maxPain && <span class="text-on-surface-variant"> ◆</span>}
+                </span>
+            </div>
+        ))
+    }
+
+    <p class="pt-2 font-label-caps text-label-caps text-on-surface-variant">
+        ▲ call wall (max call OI above spot) · ▼ put wall (max put OI below spot) · ◆
+        max pain
+    </p>
+</div>

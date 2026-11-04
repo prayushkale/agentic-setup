@@ -1,0 +1,11 @@
+{
+  "name": "design",
+  "version": "0.1.0",
+  "description": "A rule for grading generic, template-looking UI by severity instead of by counting tricks.",
+  "author": {
+    "name": "prayushkale"
+  },
+  "homepage": "https://github.com/prayushkale/agentic-setup",
+  "repository": "https://github.com/prayushkale/agentic-setup",
+  "license": "MIT"
+}

@@ -1,0 +1,10 @@
+work/
+sandbox/*
+!sandbox/fixtures/
+private/
+# research catalog: lives in the private repo (private/catalog), linked here for the tools
+/catalog
+node_modules/
+.DS_Store
+.worktrees/
+.superpowers/

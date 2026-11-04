@@ -1,0 +1,644 @@
+# agentic-setup catalogue. One item per entry; see installer/src/manifest/types.ts for the schema.
+# token_cost: startup tokens. Skills: ceil((len(name)+len(description))/4)+10 per skill, from the
+# upstream SKILL.md frontmatter on 2026-11-03. Rules: ceil(bytes/4) of the block. MCPs: 300 unless
+# measured. Hooks, status lines and CLIs add nothing at startup. Every estimate is marked `# est`.
+# Detect commands are read-only probes: they also run in dry-run.
+items:
+  # ---------------------------------------------------------------- core
+  - id: superpowers
+    name: Superpowers (Claude Code plugin)
+    pack: core
+    summary: A full working method for the agent. It asks questions before building, writes a plan for you to approve, builds with tests first, and reviews its own work before calling it done.
+    benefit: [quality]
+    details: docs/items/superpowers.md
+    kinds: [plugin, skill]
+    agents: [claude-code]
+    source: { type: plugin-marketplace, ref: obra/superpowers-marketplace }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 1609 # est: 15 skill descriptions (814) + the using-superpowers body injected at session start (795)
+    install:
+      plugin: { marketplace: obra/superpowers-marketplace, name: superpowers@superpowers-marketplace }
+    update: ["claude plugin update superpowers@superpowers-marketplace"]
+    detect: claude plugin list 2>/dev/null | grep -q 'superpowers@superpowers-marketplace'
+    verify: claude plugin list 2>/dev/null | grep -q 'superpowers@superpowers-marketplace'
+
+  - id: superpowers-skills
+    name: Superpowers (skills for other agents)
+    pack: core
+    summary: The same Superpowers skills for agents without Claude Code's plugin system, installed as plain skills. Claude Code gets the plugin instead.
+    benefit: [quality]
+    details: docs/items/superpowers-skills.md
+    kinds: [skill]
+    agents: [command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: obra/superpowers }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 814 # est
+    install:
+      skills:
+        repo: obra/superpowers
+        names: [brainstorming, diagnosing-superpowers, dispatching-parallel-agents, executing-plans, finishing-a-development-branch, receiving-code-review, requesting-code-review, subagent-driven-development, systematic-debugging, test-driven-development, using-git-worktrees, using-superpowers, verification-before-completion, writing-plans, writing-skills]
+    detect: for s in brainstorming diagnosing-superpowers dispatching-parallel-agents executing-plans finishing-a-development-branch receiving-code-review requesting-code-review subagent-driven-development systematic-debugging test-driven-development using-git-worktrees using-superpowers verification-before-completion writing-plans writing-skills; do test -f ~/.agents/skills/$s/SKILL.md || exit 1; done
+    verify: test -f ~/.agents/skills/using-superpowers/SKILL.md
+
+  - id: rtk
+    name: rtk (compact shell output)
+    pack: core
+    summary: Rewrites the agent's shell commands so their output comes back shorter, which cuts the tokens spent reading git, test and build logs.
+    benefit: [cost, speed]
+    details: docs/items/rtk.md
+    kinds: [cli-tool, hook]
+    agents: [claude-code]
+    source: { type: brew, ref: rtk }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 0
+    install:
+      commands: ["brew install rtk"]
+      commands_unless: command -v rtk
+      hooks:
+        claude-code: { event: PreToolUse, matcher: Bash, command: "rtk hook claude" }
+    uninstall: ["brew uninstall rtk"]
+    update: ["brew upgrade rtk"]
+    requires: ["brew>=4"]
+    detect: command -v rtk >/dev/null && grep -qs 'rtk hook claude' ~/.claude/settings.json
+    verify: command -v rtk >/dev/null && grep -qs 'rtk hook claude' ~/.claude/settings.json
+
+  - id: ccusage-statusline
+    name: ccusage status line
+    pack: core
+    summary: Shows the session's cost, today's spend, the 5-hour usage block and context use in Claude Code's status line.
+    benefit: [cost]
+    details: docs/items/ccusage-statusline.md
+    kinds: [cli-tool, settings]
+    agents: [claude-code]
+    source: { type: npm, ref: ccusage }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 0
+    install:
+      commands: ["npm i -g ccusage"]
+      commands_unless: command -v ccusage
+      settings:
+        statusLine: { type: command, command: "ccusage statusline -B emoji", padding: 0 }
+    uninstall: ["npm uninstall -g ccusage"]
+    update: ["npm i -g ccusage"]
+    detect: command -v ccusage >/dev/null && grep -qs '"ccusage statusline' ~/.claude/settings.json
+    verify: command -v ccusage >/dev/null && grep -qs '"ccusage statusline' ~/.claude/settings.json
+
+  - id: context7
+    name: Context7 MCP
+    pack: core
+    summary: Gives the agent current documentation for libraries and APIs, so it stops writing code against versions that are out of date.
+    benefit: [quality]
+    details: docs/items/context7.md
+    kinds: [mcp]
+    agents: [claude-code, command-code, codex, gemini-cli]
+    source: { type: git, ref: https://github.com/upstash/context7 }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 300 # est
+    install:
+      mcp: { name: context7, transport: http, url: "https://mcp.context7.com/mcp" }
+    verify: claude mcp get context7 >/dev/null 2>&1 || cmd mcp list 2>/dev/null | grep -q context7 || grep -qs context7 ~/.codex/config.toml ~/.gemini/settings.json
+
+  - id: serena
+    name: Serena (per-repo code navigation)
+    pack: core
+    summary: Installs Serena and a serena-here helper. Run serena-here inside a large repo and the agent navigates by symbol there instead of reading whole files. Nothing loads in other repos.
+    benefit: [cost, speed]
+    details: docs/items/serena.md
+    kinds: [cli-tool]
+    agents: [claude-code, command-code]
+    source: { type: git, ref: https://github.com/oraios/serena }
+    redistribution: own
+    risk: low
+    token_cost: 0
+    install:
+      commands: ["uv tool install serena-agent"]
+      commands_unless: command -v serena
+      files:
+        - { from: packs/core/serena-here, to: ~/.local/bin/serena-here, mode: 0o755 }
+    uninstall: ["uv tool uninstall serena-agent"]
+    update: ["uv tool upgrade serena-agent"]
+    requires: ["uv>=0.4"]
+    detect: command -v serena >/dev/null && test -x ~/.local/bin/serena-here
+    verify: command -v serena >/dev/null && test -x ~/.local/bin/serena-here
+
+  - id: impeccable
+    name: impeccable
+    pack: core
+    summary: A design skill for building, critiquing and polishing UI. It covers hierarchy, type, color, motion, accessibility and edge cases.
+    benefit: [quality]
+    details: docs/items/impeccable.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: pbakaus/impeccable }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 160 # est
+    install:
+      skills: { repo: pbakaus/impeccable, names: [impeccable] }
+    detect: test -f ~/.agents/skills/impeccable/SKILL.md
+    verify: test -f ~/.agents/skills/impeccable/SKILL.md
+
+  - id: frontend-design
+    name: frontend-design
+    pack: core
+    summary: Guidance for giving new UI a clear visual direction, so it does not end up looking like a default template.
+    benefit: [quality]
+    details: docs/items/frontend-design.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: anthropics/skills }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 65 # est
+    install:
+      skills: { repo: anthropics/skills, names: [frontend-design] }
+    detect: test -f ~/.agents/skills/frontend-design/SKILL.md
+    verify: test -f ~/.agents/skills/frontend-design/SKILL.md
+
+  - id: ui-ux-pro-max
+    name: ui-ux-pro-max
+    pack: core
+    summary: A searchable library of UI styles, palettes, font pairings and UX guidelines. It can also write a design system into your repo for later sessions to reuse.
+    benefit: [quality]
+    details: docs/items/ui-ux-pro-max.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: nextlevelbuilder/ui-ux-pro-max-skill }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 137 # est
+    install:
+      skills: { repo: nextlevelbuilder/ui-ux-pro-max-skill, names: [ui-ux-pro-max] }
+    # The upstream script path only resolves inside the Claude plugin; point it at the shared skill copy.
+    post_install:
+      - |-
+        test -f "$HOME/.agents/skills/ui-ux-pro-max/SKILL.md" || { echo "missing $HOME/.agents/skills/ui-ux-pro-max/SKILL.md" >&2; exit 1; } && perl -pi -e 's|\$\{CLAUDE_PLUGIN_ROOT\}/\.claude/skills/ui-ux-pro-max|\$HOME/.agents/skills/ui-ux-pro-max|g' ~/.agents/skills/ui-ux-pro-max/SKILL.md
+    detect: test -f ~/.agents/skills/ui-ux-pro-max/SKILL.md
+    verify: test -f ~/.agents/skills/ui-ux-pro-max/SKILL.md && ! grep -q 'CLAUDE_PLUGIN_ROOT' ~/.agents/skills/ui-ux-pro-max/SKILL.md
+
+  - id: grill-me
+    name: grill-me
+    pack: core
+    summary: Run /grill-me on a fuzzy idea and the agent interviews you, one question at a time, until the plan is sharp enough to build.
+    benefit: [quality]
+    details: docs/items/grill-me.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: mattpocock/skills }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 75 # est: grill-me (25) + grilling (50), which grill-me hands off to
+    install:
+      skills: { repo: mattpocock/skills, names: [grill-me, grilling] }
+    detect: test -f ~/.agents/skills/grill-me/SKILL.md && test -f ~/.agents/skills/grilling/SKILL.md
+    verify: test -f ~/.agents/skills/grill-me/SKILL.md && test -f ~/.agents/skills/grilling/SKILL.md
+
+  - id: handoff
+    name: handoff
+    pack: core
+    summary: Run /handoff before you switch sessions. It writes a short note that lets a fresh session pick up the work without the old context.
+    benefit: [cost, quality]
+    details: docs/items/handoff.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: mattpocock/skills }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 34 # est
+    install:
+      skills: { repo: mattpocock/skills, names: [handoff] }
+    detect: test -f ~/.agents/skills/handoff/SKILL.md
+    verify: test -f ~/.agents/skills/handoff/SKILL.md
+
+  - id: caveman
+    name: caveman
+    pack: core
+    summary: An on-demand terse reply mode. Turn it on for long fix loops to save output tokens, and turn it off again with "normal mode".
+    benefit: [cost]
+    details: docs/items/caveman.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: JuliusBrussee/caveman }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 63 # est
+    install:
+      skills: { repo: JuliusBrussee/caveman, names: [caveman] }
+    detect: test -f ~/.agents/skills/caveman/SKILL.md
+    verify: test -f ~/.agents/skills/caveman/SKILL.md
+
+  - id: find-skills
+    name: find-skills
+    pack: core
+    summary: Lets the agent search for an existing skill when you ask "is there a skill for this?", instead of building one from scratch.
+    benefit: [speed]
+    details: docs/items/find-skills.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: vercel-labs/skills }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 89 # est
+    install:
+      skills: { repo: vercel-labs/skills, names: [find-skills] }
+    detect: test -f ~/.agents/skills/find-skills/SKILL.md
+    verify: test -f ~/.agents/skills/find-skills/SKILL.md
+
+  - id: differential-review
+    name: differential-review
+    pack: core
+    summary: A security review of a diff. It sizes the blast radius, checks git history for reintroduced bugs and flags changed code that no test covers.
+    benefit: [quality]
+    details: docs/items/differential-review.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: trailofbits/skills }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 134 # est
+    install:
+      skills: { repo: trailofbits/skills, names: [differential-review] }
+    # The upstream skill delegates to a plugin-only subagent. Ship its brief beside the skill and
+    # point the skill at a general-purpose subagent instead (both edits are idempotent).
+    post_install:
+      - curl -fsSL https://raw.githubusercontent.com/trailofbits/skills/711af095215ad4ecde5b90cd1d0124b3f1c4ca9e/plugins/differential-review/agents/adversarial-modeler.md -o ~/.agents/skills/differential-review/adversarial-modeler.md
+      - |-
+        test -f "$HOME/.agents/skills/differential-review/SKILL.md" || { echo "missing $HOME/.agents/skills/differential-review/SKILL.md" >&2; exit 1; } && perl -0pi -e 's/differential-review:adversarial-modeler agent/a general-purpose subagent briefed with adversarial-modeler.md/; s/\*\*`differential-review:adversarial-modeler`\*\*.*?fails at runtime\./**Adversarial modeler** — Models attacker perspectives and builds exploit scenarios for\nHIGH RISK code changes using the 5-step adversarial methodology (attacker model, attack\nvectors, exploitability rating, exploit scenario, baseline cross-reference). When Phase 5\nanalysis is needed, delegate to a general-purpose subagent and include the full contents of\n`adversarial-modeler.md` (in this skill\x27s directory) as its instructions, plus the high-risk\nchanges to analyze. If subagents are unavailable, read `adversarial.md` and do it inline./s' ~/.agents/skills/differential-review/SKILL.md
+    detect: test -f ~/.agents/skills/differential-review/SKILL.md
+    verify: test -f ~/.agents/skills/differential-review/adversarial-modeler.md && ! grep -q 'differential-review:adversarial-modeler' ~/.agents/skills/differential-review/SKILL.md
+
+  - id: supply-chain-risk-auditor
+    name: supply-chain-risk-auditor
+    pack: core
+    summary: Audits a repo's npm and pip dependencies for known advisories and risky packages, then writes a report you can act on.
+    benefit: [quality]
+    details: docs/items/supply-chain-risk-auditor.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: trailofbits/skills }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 108 # est
+    install:
+      skills: { repo: trailofbits/skills, names: [supply-chain-risk-auditor] }
+    # Without --project, uv may pick an old system Python; the scripts need 3.11 or newer.
+    post_install:
+      - |-
+        test -f "$HOME/.agents/skills/supply-chain-risk-auditor/SKILL.md" || { echo "missing $HOME/.agents/skills/supply-chain-risk-auditor/SKILL.md" >&2; exit 1; } && perl -pi -e 's#uv run \{baseDir\}/scripts/([\w.-]+\.py)#uv run --project "\$HOME/.agents/skills/supply-chain-risk-auditor/scripts" "\$HOME/.agents/skills/supply-chain-risk-auditor/scripts/$1"#g' ~/.agents/skills/supply-chain-risk-auditor/SKILL.md
+    requires: ["uv>=0.4"]
+    detect: test -f ~/.agents/skills/supply-chain-risk-auditor/SKILL.md
+    verify: test -f ~/.agents/skills/supply-chain-risk-auditor/SKILL.md && ! grep -q 'uv run {baseDir}' ~/.agents/skills/supply-chain-risk-auditor/SKILL.md
+
+  - id: agent-browser
+    name: agent-browser
+    pack: core
+    summary: A browser the agent drives from the command line. It opens pages, clicks, fills forms and takes screenshots, so UI work gets checked by looking at it.
+    benefit: [quality]
+    details: docs/items/agent-browser.md
+    kinds: [skill, cli-tool]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: vercel-labs/agent-browser }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 245 # est
+    install:
+      skills: { repo: vercel-labs/agent-browser, names: [agent-browser] }
+      commands: ["npm install -g agent-browser", "agent-browser install"]
+      commands_unless: command -v agent-browser
+    uninstall: ["npm uninstall -g agent-browser"]
+    detect: command -v agent-browser >/dev/null && test -f ~/.agents/skills/agent-browser/SKILL.md
+    verify: command -v agent-browser >/dev/null && test -f ~/.agents/skills/agent-browser/SKILL.md
+
+  - id: agents-md
+    name: AGENTS.md working rules
+    pack: core
+    summary: A short set of working rules for every agent. Plan before building, write tests first, prove work before calling it done, keep changes small, and look up current docs.
+    benefit: [quality]
+    details: docs/items/agents-md.md
+    kinds: [rule]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: local, ref: templates/AGENTS.md }
+    redistribution: own
+    risk: low
+    token_cost: 197 # est
+    install:
+      rule: templates/AGENTS.md
+    verify: grep -qs 'agentic-setup:agents-md begin' ~/.claude/CLAUDE.md ~/.agents/AGENTS.md ~/.commandcode/AGENTS.md ~/.codex/AGENTS.md ~/.gemini/GEMINI.md
+
+  # ---------------------------------------------------------------- verification
+  - id: acceptance-checks
+    name: Acceptance checks rule
+    pack: verification
+    summary: Every spec ends with checks you can run, fixed before building starts. The agent runs each one and reports "N of N pass" before it says done.
+    benefit: [quality]
+    details: docs/items/acceptance-checks.md
+    kinds: [rule]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: local, ref: packs/verification/acceptance-checks.md }
+    redistribution: own
+    risk: low
+    token_cost: 196 # est
+    install:
+      rule: packs/verification/acceptance-checks.md
+    verify: grep -qs 'agentic-setup:acceptance-checks begin' ~/.claude/CLAUDE.md ~/.agents/AGENTS.md ~/.commandcode/AGENTS.md ~/.codex/AGENTS.md ~/.gemini/GEMINI.md
+
+  - id: accept-gate
+    name: Accept gate (Stop hook)
+    pack: verification
+    summary: A Claude Code hook that blocks a "done" claim while an acceptance check is still open or the locked checks have been edited. It also rejects out-of-order task ledger writes.
+    benefit: [quality]
+    details: docs/items/accept-gate.md
+    kinds: [hook]
+    agents: [claude-code]
+    source: { type: local, ref: packs/verification/accept-gate }
+    redistribution: own
+    risk: med
+    risk_reason: "Open bypass: the agent can rewrite the pin file unless an OS sandbox denies writes to it."
+    token_cost: 0
+    requires: [acceptance-checks, "node>=20"]
+    install:
+      files:
+        - { from: packs/verification/accept-gate/accept-gate.mjs, to: ~/.agentic-setup/accept-gate/accept-gate.mjs }
+        - { from: packs/verification/accept-gate/pending.mjs, to: ~/.agentic-setup/accept-gate/pending.mjs }
+      hooks:
+        claude-code: { event: Stop, command: "node \"$HOME/.agentic-setup/accept-gate/accept-gate.mjs\"" }
+      # The same script also guards ledger writes; HookSpec holds one event, so the second goes in settings.
+      settings:
+        hooks:
+          PreToolUse:
+            - matcher: Write|Edit|MultiEdit
+              hooks: [{ type: command, command: "node \"$HOME/.agentic-setup/accept-gate/accept-gate.mjs\"" }]
+    verify: test -f ~/.agentic-setup/accept-gate/accept-gate.mjs && grep -qs 'accept-gate/accept-gate.mjs' ~/.claude/settings.json
+
+  - id: plan-review
+    name: plan-review
+    pack: verification
+    summary: Two fresh reviewers check a written plan against the code and the spec before any of it is built. They see no conversation, so they cannot be steered.
+    benefit: [quality]
+    details: docs/items/plan-review.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: local, ref: packs/verification/plan-review }
+    redistribution: own
+    risk: low
+    token_cost: 72 # est
+    install:
+      local_skills: [packs/verification/plan-review]
+    verify: ls ~/.claude/skills/plan-review/SKILL.md ~/.agents/skills/plan-review/SKILL.md ~/.commandcode/skills/plan-review/SKILL.md ~/.gemini/skills/plan-review/SKILL.md 2>/dev/null | grep -q .
+
+  - id: skeptic-filter
+    name: skeptic-filter
+    pack: verification
+    summary: An opt-in second pass for risky diffs. Three skeptics try to refute each review finding, and only findings that survive with evidence are kept. Capped at 30 subagents.
+    benefit: [quality]
+    details: docs/items/skeptic-filter.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: local, ref: packs/verification/skeptic-filter }
+    redistribution: own
+    risk: low
+    token_cost: 71 # est
+    install:
+      local_skills: [packs/verification/skeptic-filter]
+    verify: ls ~/.claude/skills/skeptic-filter/SKILL.md ~/.agents/skills/skeptic-filter/SKILL.md ~/.commandcode/skills/skeptic-filter/SKILL.md ~/.gemini/skills/skeptic-filter/SKILL.md 2>/dev/null | grep -q .
+
+  # ---------------------------------------------------------------- design
+  - id: slop-severity
+    name: Slop severity rule
+    pack: design
+    summary: Grades template-looking UI by clusters of tells and by how generic the copy is, then gives one fix that starts with the copy.
+    benefit: [quality]
+    details: docs/items/slop-severity.md
+    kinds: [rule]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: local, ref: packs/design/slop-severity.md }
+    redistribution: own
+    risk: low
+    token_cost: 481 # est
+    install:
+      rule: packs/design/slop-severity.md
+    verify: grep -qs 'agentic-setup:slop-severity begin' ~/.claude/CLAUDE.md ~/.agents/AGENTS.md ~/.commandcode/AGENTS.md ~/.codex/AGENTS.md ~/.gemini/GEMINI.md
+
+  # ---------------------------------------------------------------- core-extras
+  - id: grilling-followup
+    name: Grilling follow-up rule
+    pack: core-extras
+    summary: After each decision in a grilling session, the agent asks how you would know it came out wrong, and turns your answer into an acceptance check.
+    benefit: [quality]
+    details: docs/items/grilling-followup.md
+    kinds: [rule]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: local, ref: packs/core/grilling-followup.md }
+    redistribution: own
+    risk: low
+    token_cost: 253 # est
+    requires: [grill-me]
+    install:
+      rule: packs/core/grilling-followup.md
+    verify: grep -qs 'agentic-setup:grilling-followup begin' ~/.claude/CLAUDE.md ~/.agents/AGENTS.md ~/.commandcode/AGENTS.md ~/.codex/AGENTS.md ~/.gemini/GEMINI.md
+
+  # ---------------------------------------------------------------- security
+  - id: vet-skill
+    name: vet-skill
+    pack: security
+    summary: Scans a third-party skill with NVIDIA SkillSpector before you install it, and acts on the verdict. It fails closed when the scan cannot finish.
+    benefit: [quality]
+    details: docs/items/vet-skill.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: local, ref: packs/security/vet-skill }
+    redistribution: own
+    risk: low
+    token_cost: 58 # est
+    requires: ["skillspector>=2.13.3"]
+    manual: Install NVIDIA SkillSpector v2.13.3 (https://github.com/NVIDIA/SkillSpector) so `skillspector` is on PATH. Until then every scan reports ERROR and nothing gets installed.
+    install:
+      local_skills: [packs/security/vet-skill]
+    verify: command -v skillspector >/dev/null && ls ~/.claude/skills/vet-skill/SKILL.md ~/.agents/skills/vet-skill/SKILL.md ~/.commandcode/skills/vet-skill/SKILL.md ~/.gemini/skills/vet-skill/SKILL.md 2>/dev/null | grep -q .
+
+  # ---------------------------------------------------------------- cloudflare
+  - id: cloudflare-skills
+    name: Cloudflare skills
+    pack: cloudflare
+    summary: Cloudflare's own skills for choosing products and for building Workers, Durable Objects, Agents SDK apps, Zero Trust, email and more, with the cf CLI and Wrangler.
+    benefit: [quality, speed]
+    details: docs/items/cloudflare-skills.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: cloudflare/skills }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 1156 # est: 19 skills
+    install:
+      skills:
+        repo: cloudflare/skills
+        names: [cloudflare, cf-cli, wrangler, workers-best-practices, workers-profiling, durable-objects, agents-sdk, basin, cloudflare-email-service, cloudflare-one, cloudflare-one-migrations, gateway-workers, k2, nextjs-on-cloudflare, sandbox-migrate-to-next, sandbox-next, sandbox-stable, turnstile-spin, web-perf]
+    detect: for s in cloudflare cf-cli wrangler workers-best-practices workers-profiling durable-objects agents-sdk basin cloudflare-email-service cloudflare-one cloudflare-one-migrations gateway-workers k2 nextjs-on-cloudflare sandbox-migrate-to-next sandbox-next sandbox-stable turnstile-spin web-perf; do test -f ~/.agents/skills/$s/SKILL.md || exit 1; done
+    verify: test -f ~/.agents/skills/cloudflare/SKILL.md && test -f ~/.agents/skills/cf-cli/SKILL.md
+
+  - id: cf-cli-rule
+    name: cf CLI rule
+    pack: cloudflare
+    summary: Tells the agent to use Cloudflare's cf CLI, or Wrangler when the project already has a Wrangler config.
+    benefit: [quality]
+    details: docs/items/cf-cli-rule.md
+    kinds: [rule]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: local, ref: packs/cloudflare/cf-cli-rule.md }
+    redistribution: own
+    risk: low
+    token_cost: 52 # est
+    install:
+      rule: packs/cloudflare/cf-cli-rule.md
+    verify: grep -qs 'agentic-setup:cf-cli-rule begin' ~/.claude/CLAUDE.md ~/.agents/AGENTS.md ~/.commandcode/AGENTS.md ~/.codex/AGENTS.md ~/.gemini/GEMINI.md
+
+  # ---------------------------------------------------------------- threejs
+  - id: threejs-skills
+    name: Three.js API skills
+    pack: threejs
+    summary: Reference skills for the Three.js API, covering scenes, geometry, materials, lighting, shaders, loaders, animation, post-processing, performance and React Three Fiber.
+    benefit: [quality]
+    details: docs/items/threejs-skills.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: CloudAI-X/threejs-skills }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 1117 # est: 13 skills
+    install:
+      skills:
+        repo: CloudAI-X/threejs-skills
+        names: [threejs-fundamentals, threejs-geometry, threejs-materials, threejs-lighting, threejs-textures, threejs-shaders, threejs-loaders, threejs-animation, threejs-interaction, threejs-postprocessing, threejs-performance, threejs-asset-pipeline, threejs-react-three-fiber]
+    detect: for s in threejs-fundamentals threejs-geometry threejs-materials threejs-lighting threejs-textures threejs-shaders threejs-loaders threejs-animation threejs-interaction threejs-postprocessing threejs-performance threejs-asset-pipeline threejs-react-three-fiber; do test -f ~/.agents/skills/$s/SKILL.md || exit 1; done
+    verify: test -f ~/.agents/skills/threejs-fundamentals/SKILL.md
+
+  - id: threejs-game-skills
+    name: Three.js game skills
+    pack: threejs
+    summary: Skills for building whole browser games, routed by a game-director skill. They cover gameplay systems, premium graphics, game UI, debugging and release checks.
+    benefit: [quality]
+    details: docs/items/threejs-game-skills.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: majidmanzarpour/threejs-game-skills }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 570 # est: 6 skills
+    install:
+      skills:
+        repo: majidmanzarpour/threejs-game-skills
+        names: [threejs-game-director, threejs-gameplay-systems, threejs-aaa-graphics-builder, threejs-game-ui-designer, threejs-debug-profiler, threejs-qa-release]
+    detect: for s in threejs-game-director threejs-gameplay-systems threejs-aaa-graphics-builder threejs-game-ui-designer threejs-debug-profiler threejs-qa-release; do test -f ~/.agents/skills/$s/SKILL.md || exit 1; done
+    verify: test -f ~/.agents/skills/threejs-game-director/SKILL.md
+
+  - id: threejs-devtools
+    name: threejs-devtools MCP
+    pack: threejs
+    summary: Lets the agent inspect and tweak a live Three.js scene in the browser, including objects, materials, shadows, performance and screenshots, instead of guessing from the code.
+    benefit: [quality, speed]
+    details: docs/items/threejs-devtools.md
+    kinds: [mcp]
+    agents: [claude-code, command-code, codex, gemini-cli]
+    source: { type: npm, ref: threejs-devtools-mcp@0.5.0 }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 300 # est
+    requires: ["node>=20"]
+    install:
+      mcp: { name: threejs-devtools, transport: stdio, command: npx, args: ["-y", "threejs-devtools-mcp@0.5.0"] }
+    verify: claude mcp get threejs-devtools >/dev/null 2>&1 || cmd mcp list 2>/dev/null | grep -q threejs-devtools || grep -qs threejs-devtools ~/.codex/config.toml ~/.gemini/settings.json
+
+  - id: fal-mcp
+    name: fal MCP
+    pack: threejs
+    summary: Generates images, 3D models, audio and video through fal's hosted models. The game skills use it for assets.
+    benefit: [speed]
+    details: docs/items/fal-mcp.md
+    kinds: [mcp]
+    agents: [claude-code, command-code, codex, gemini-cli]
+    source: { type: git, ref: https://fal.ai/docs/documentation/setting-up/mcp }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 300 # est
+    manual: Needs your own fal.ai account (OAuth sign-in; the hosted server takes no API key). Sign in once after install. In Claude Code run /mcp and pick fal; in Codex run `codex mcp login fal`. Generations are billed to your fal account.
+    install:
+      mcp: { name: fal, transport: http, url: "https://mcp.fal.ai/mcp-relay" }
+    verify: claude mcp get fal >/dev/null 2>&1 || cmd mcp list 2>/dev/null | grep -q fal || grep -qs mcp.fal.ai ~/.codex/config.toml ~/.gemini/settings.json
+
+  - id: blender-mcp
+    name: Blender MCP
+    pack: threejs
+    summary: Lets the agent drive your running Blender to clean up, rig and export models, and to pull from asset libraries.
+    benefit: [quality, speed]
+    details: docs/items/blender-mcp.md
+    kinds: [mcp]
+    agents: [claude-code, command-code, codex, gemini-cli]
+    source: { type: git, ref: https://github.com/ahujasid/blender-mcp }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 300 # est
+    requires: ["uvx>=0.4"]
+    manual: Needs Blender running with the MCP for Blender add-on. Run `uvx mcp-for-blender==2.2.6 install-addon`, enable "MCP for Blender" in Blender's Add-ons preferences, and start its server from the sidebar tab. Sharing your content with the project is opt-in; leave that consent box unchecked.
+    install:
+      mcp: { name: blender, transport: stdio, command: uvx, args: ["mcp-for-blender==2.2.6"] }
+    verify: claude mcp get blender >/dev/null 2>&1 || cmd mcp list 2>/dev/null | grep -q blender || grep -qs mcp-for-blender ~/.codex/config.toml ~/.gemini/settings.json
+
+  - id: threejs-tooling-rule
+    name: Three.js tooling rule
+    pack: threejs
+    summary: Tells the agent how the Three.js tools fit together. Start with the game director, check APIs against current docs, inspect the live scene, and make assets with fal and Blender.
+    benefit: [quality]
+    details: docs/items/threejs-tooling-rule.md
+    kinds: [rule]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: local, ref: packs/threejs/tooling-rule.md }
+    redistribution: own
+    risk: low
+    token_cost: 140 # est
+    install:
+      rule: packs/threejs/tooling-rule.md
+    verify: grep -qs 'agentic-setup:threejs-tooling-rule begin' ~/.claude/CLAUDE.md ~/.agents/AGENTS.md ~/.commandcode/AGENTS.md ~/.codex/AGENTS.md ~/.gemini/GEMINI.md
+
+  # ---------------------------------------------------------------- video
+  - id: hyperframes
+    name: HyperFrames skills
+    pack: video
+    summary: Skills for making videos from HTML with HyperFrames, such as launch films, explainers, captions, slideshows and changelog videos, with motion and transition guidance.
+    benefit: [quality, speed]
+    details: docs/items/hyperframes.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: heygen-com/hyperframes }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 1717 # est: 13 skills
+    install:
+      skills:
+        repo: heygen-com/hyperframes
+        names: [hyperframes, hyperframes-cli, hyperframes-registry, media-use, figma, slideshow, remotion-to-hyperframes, captions-overlay, changelog-video, cut-the-curve, motion-doctrine, oversized-cursor, seam-craft]
+    detect: for s in hyperframes hyperframes-cli hyperframes-registry media-use figma slideshow remotion-to-hyperframes captions-overlay changelog-video cut-the-curve motion-doctrine oversized-cursor seam-craft; do test -f ~/.agents/skills/$s/SKILL.md || exit 1; done
+    verify: test -f ~/.agents/skills/hyperframes/SKILL.md
+
+  - id: remotion
+    name: Remotion skills
+    pack: video
+    summary: Skills for making videos in React with Remotion. They cover creating projects, captions, maps, media, the Studio, rendering and upgrades.
+    benefit: [quality, speed]
+    details: docs/items/remotion.md
+    kinds: [skill]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: npx-skills, ref: remotion-dev/skills }
+    redistribution: upstream-public
+    risk: low
+    token_cost: 272 # est: 12 skills
+    install:
+      skills:
+        repo: remotion-dev/skills
+        names: [remotion-best-practices, remotion-create, remotion-docs, remotion-captions, remotion-interactivity, remotion-maps, remotion-markup, remotion-multimedia, remotion-render, remotion-saas, remotion-studio, remotion-upgrade]
+    detect: for s in remotion-best-practices remotion-create remotion-docs remotion-captions remotion-interactivity remotion-maps remotion-markup remotion-multimedia remotion-render remotion-saas remotion-studio remotion-upgrade; do test -f ~/.agents/skills/$s/SKILL.md || exit 1; done
+    verify: test -f ~/.agents/skills/remotion-best-practices/SKILL.md

@@ -1,0 +1,8 @@
+{
+  "name": "tally",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "bin": { "tally": "src/cli.ts" },
+  "scripts": { "test": "node --test \"test/**/*.test.ts\"" }
+}

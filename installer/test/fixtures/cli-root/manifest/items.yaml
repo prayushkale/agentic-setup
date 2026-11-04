@@ -1,0 +1,71 @@
+items:
+  - id: agents-md
+    name: AGENTS.md template
+    pack: core
+    summary: General working rules for every agent (plan first, TDD, verify before done).
+    benefit: [quality]
+    details: docs/items/agents-md.md
+    kinds: [rule]
+    agents: [claude-code, command-code, codex, gemini-cli, generic]
+    source: { type: local, ref: packs/core/agents-md.md }
+    redistribution: own
+    risk: low
+    token_cost: 300
+    install:
+      rule: packs/core/agents-md.md
+    verify: "true"
+  - id: demo-skill
+    name: Demo skill
+    pack: core
+    summary: A small local skill used to test the walk-through.
+    benefit: [speed, cost]
+    details: docs/items/demo-skill.md
+    kinds: [skill]
+    agents: [claude-code, generic]
+    source: { type: local, ref: packs/core/demo-skill }
+    redistribution: own
+    risk: low
+    token_cost: 120
+    install:
+      local_skills: [packs/core/demo-skill]
+    verify: "true"
+  - id: accept-gate
+    name: Accept gate
+    pack: verification
+    summary: A hook that blocks "done" until the acceptance checks pass.
+    benefit: [quality]
+    details: docs/items/accept-gate.md
+    kinds: [hook]
+    agents: [claude-code, gemini-cli]
+    source: { type: local, ref: packs/verification/gate.md }
+    redistribution: own
+    risk: med
+    risk_reason: The agent can write the pin file unless an OS sandbox denies it.
+    token_cost: 80
+    install:
+      hooks:
+        claude-code: { event: Stop, command: "echo gate" }
+      rule: packs/verification/gate.md
+    verify: "true"
+  - id: risky-tool
+    name: Risky tool
+    pack: verification
+    summary: A tool installed by a downloaded script.
+    benefit: [speed]
+    details: docs/items/risky-tool.md
+    kinds: [cli-tool]
+    agents: [claude-code, generic]
+    source:
+      type: curl-script
+      ref: https://example.com/install.sh
+      sha256: 0000000000000000000000000000000000000000000000000000000000000abc
+    redistribution: upstream-public
+    risk: high
+    risk_reason: Runs a downloaded shell script with your user rights.
+    token_cost: 0
+    needs_key: RISKY_API_KEY
+    manual: Sign up at example.com and export RISKY_API_KEY.
+    install:
+      commands: ["echo install-risky"]
+    uninstall: ["echo uninstall-risky"]
+    verify: "false"

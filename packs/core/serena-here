@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Enable the Serena MCP (symbol-level code navigation) for the current repo
+# in both Claude Code and Command Code. Local scope: only this project, not committed.
+# Usage: cd <repo> && serena-here        Undo: serena-here --remove
+set -euo pipefail
+
+dir="$(pwd)"
+
+if [ "${1:-}" = "--remove" ]; then
+	command -v claude >/dev/null 2>&1 && { claude mcp remove serena -s local || true; }
+	command -v cmd >/dev/null 2>&1 && { cmd mcp remove serena -s local || true; }
+	exit 0
+fi
+
+# Each agent is optional: set up whichever of claude / cmd is installed.
+command -v claude >/dev/null 2>&1 && claude mcp add serena -s local -- serena start-mcp-server --context claude-code --project "$dir"
+command -v cmd >/dev/null 2>&1 && cmd mcp add-json serena -s local \
+	"{\"type\":\"stdio\",\"command\":\"serena\",\"args\":[\"start-mcp-server\",\"--context\",\"ide\",\"--project\",\"$dir\"]}"
+echo "Serena enabled for $dir (first start indexes the repo and may download a language server)."

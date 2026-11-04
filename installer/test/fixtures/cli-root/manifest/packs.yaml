@@ -1,0 +1,9 @@
+packs:
+  - id: core
+    title: Core
+    default: true
+    summary: The reference setup
+  - id: verification
+    title: Verification
+    default: false
+    summary: Gates that check work before it is called done

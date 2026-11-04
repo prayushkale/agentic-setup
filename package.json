@@ -1,0 +1,11 @@
+{
+  "name": "agentic-setup-workspace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "catalog": "python3 -I tools/build-catalog.py && node tools/gen-catalog.mjs"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
+  }
+}
