@@ -48,6 +48,21 @@ describe('runner', () => {
     }
   });
 
+  it('drops npm exec settings (npx --package/-c) so nested npx calls resolve their own package', async () => {
+    const { ctx } = mk();
+    const keys = ['npm_config_package', 'NPM_CONFIG_CALL', 'npm_config_yes'];
+    const prev = keys.map((k) => process.env[k]);
+    process.env.npm_config_package = '/tmp/agentic-setup-0.1.0.tgz';
+    process.env.NPM_CONFIG_CALL = 'agentic-setup';
+    process.env.npm_config_yes = 'true';
+    try {
+      const r = await makeRunner(ctx).run('echo "[$npm_config_package][$NPM_CONFIG_CALL][$npm_config_yes]"');
+      expect(r.stdout).toBe('[][][true]');
+    } finally {
+      keys.forEach((k, i) => (prev[i] === undefined ? delete process.env[k] : (process.env[k] = prev[i])));
+    }
+  });
+
   it('failing command throws unless allowFail', async () => {
     const { ctx } = mk();
     const run = makeRunner(ctx);
