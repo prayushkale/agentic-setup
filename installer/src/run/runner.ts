@@ -36,6 +36,9 @@ export function makeRunner(ctx: Ctx): Runner {
         return { code: 0, stdout: '', stderr: '' };
       }
       const env: Record<string, string | undefined> = { ...process.env, HOME: ctx.home };
+      // `npx --package X` / `npm exec -c` export these to children; a nested `npx -y skills`
+      // would then run X instead of `skills`. npm reads npm_config_* case-insensitively.
+      for (const k of Object.keys(env)) if (/^npm_config_(package|call)$/i.test(k)) delete env[k];
       if (ctx.npmPrefix !== undefined) {
         env.NPM_CONFIG_PREFIX = ctx.npmPrefix;
         env.PATH = [join(ctx.npmPrefix, 'bin'), process.env.PATH].filter(Boolean).join(delimiter);
